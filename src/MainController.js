@@ -18,14 +18,14 @@ class MainController extends Component{
 	  // define non state variables here
 	  this.routeListURL = "http://webservices.nextbus.com/service/publicJSONFeed?command=routeList&a=sf-muni";
 	  this.routeVehicleLocationURL = "http://webservices.nextbus.com/service/publicJSONFeed?command=vehicleLocations&a=sf-muni&r=";
-	  this.refreshIntervalMS = 10000
+	  this.refreshIntervalMS = 15000
 		this.selectedCheckboxes = new Set();
 	  this.state = {
 	  	routesToDraw: [],
 	  	allRoutesList: {},
 	  	showRoutes: false,
 	  	vehicleLocation: [],
-	  	vehicleStore: {},
+	  	vehicleStore: new Map(),
 	  };
 	}
 
@@ -53,7 +53,7 @@ class MainController extends Component{
 		  })	
 	}
 	//callback function that updates the MainController state of the tags of the routes to draw
-	updateRoutesToDraw = newRoutes => {
+	updateRoutesCallback = newRoutes => {
 		let controller = this
 		controller.setState({routesToDraw: newRoutes})
 		//now make the requests for them 
@@ -65,6 +65,7 @@ class MainController extends Component{
 		const baseURL = this.routeVehicleLocationURL
 		const controller = this
 		let vehicleInfo = []
+		
 
 		for (const tag of routeTags) {
 			fetch(baseURL + tag + "&t=0")
@@ -90,23 +91,24 @@ class MainController extends Component{
 		let myVehicleStore = this.state.vehicleStore
 		let updated = false
 		let tag = vehicleData.tag
-
+		// console.log(vehicleData)
 		// if there are vehicles in the data, check if the locations are new
 		if (vehicleData.vehicle != undefined){
 			for (let i = 0; i < vehicleData.vehicle.length; i++){
 				let bus = vehicleData.vehicle[i]
 				let key = tag + bus.id
-				console.log(key)
+				// console.log(key)
 				if (bus != undefined && bus.lat != undefined && bus.lon != undefined ){
-					if (!myVehicleStore.hasOwnProperty(key)){
-						myVehicleStore[key] = bus
+					if (!(key in myVehicleStore.keys())){
+						myVehicleStore.set(key, bus)
 						updated = true
 					}
 					else{
 						// if the latitude or longitude of object has changed, update it
-						const oldData = myVehicleStore[key]
+						const oldData = myVehicleStore.get(key)
+						// console.log(oldData)
 						if (oldData.lat != bus.lat || oldData.lon != bus.lon){
-							myVehicleStore[key] = bus
+							myVehicleStore.set(key, bus)
 							updated = true
 						}
 					}
@@ -115,8 +117,8 @@ class MainController extends Component{
 		}
 		// if the old vehiclestore is updated, change the state
 		if (updated){
-			console.log('updated vehicle store state')
-			console.log(myVehicleStore)
+			// console.log('updated vehicle store state')
+			// console.log(myVehicleStore)
 			controller.setState({
 				vehicleStore: myVehicleStore
 			})
@@ -131,7 +133,7 @@ class MainController extends Component{
 		if (showRoutes) {
 			return (
 				<div>
-				<CheckboxList routesList={allRoutesList} updateRoutes={this.updateRoutesToDraw}/>
+				<CheckboxList routesList={allRoutesList} updateRoutes={this.updateRoutesCallback}/>
 				<SFMap height={900} width= {1000} vehicleLocation={this.state.vehicleStore}/>
 			</div>
 			)

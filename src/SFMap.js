@@ -12,7 +12,7 @@ class SFMap extends Component{
         'freeways',
         'streets',
     ]
-    this.baseProjectionScale = 350000,
+    this.baseProjectionScale = 300000,
     this.baseMapCenter= [-122.433701, 37.767683],
     this.state = {
     	mapData:[],
@@ -23,18 +23,10 @@ class SFMap extends Component{
 
 		this.projection = geoMercator()
             .scale(this.baseProjectionScale)
-            .rotate([0, 0])
             .center(this.baseMapCenter)
-            // .translate([this.props.height / 4, this.props.width / 4])
+            .translate([this.props.height / 2, this.props.width / 2])
     this.pathGenerator = geoPath().projection(this.projection)
 		this.LoadAllBaseMaps()
-	}
-
-	componentWillReceiveProps(nextProps){
-		console.log('might morph bus list')
-		if (this.props.vehicleLocation.length != nextProps.vehicleLocation.length){
-			this.getBusList()
-		}
 	}
 
 
@@ -75,60 +67,58 @@ class SFMap extends Component{
 		return mapPaths
 	} 
 
-	getBusList = () =>{
-		console.log('morphing bus list to actual list')
-		let busPathList = this.state.busPaths
-		// console.log(this.props.vehicleLocation)
-		// console.log(typeof this.props.vehicleLocation)
-		for (const[key] in Object.entries(this.props.vehicleLocation)){
-			let element = this.props.vehicleLocation[key][1]
-			let obj = {id: element.id, lon: element.lon, lat: element.lat, tag: element.tag}
-			busPathList.push(obj)
-		}
-		this.setState({
-			busPaths: busPathList
-		})
+	// getBusList = () =>{
+	// 	console.log('morphing bus list to actual list')
+	// 	let busPathList = this.state.busPaths
+	// 	// console.log(this.props.vehicleLocation)
+	// 	// console.log(typeof this.props.vehicleLocation)
+	// 	for (const[key] in Object.entries(this.props.vehicleLocation)){
+	// 		let element = this.props.vehicleLocation[key][1]
+	// 		let obj = {id: element.id, lon: element.lon, lat: element.lat, tag: element.tag}
+	// 		busPathList.push(obj)
+	// 	}
+	// 	this.setState({
+	// 		busPaths: busPathList
+	// 	})
+	// }
+
+	drawBus = bus => {
+		return(
+					<circle
+						key = {bus.id}
+						cx= {this.projection([bus.lon, bus.lat])[0]}
+						cy= {this.projection([bus.lon, bus.lat])[1]}
+						r='8'
+						fill="#E91E63"
+						stroke="#FFFFFF"
+						className="buses"
+					/>					
+			)
 	}
 
-	drawBus = (bus) => (
-		<div>
-			<circle 
-				cx= {this.pathGenerator(bus.lat)}
-				cy= {this.pathGenerator(bus.long)}
-				radius='4px'
-				fill="#E91E63"
-				stroke="#FFFFFF"
-			/>
-			<text/>
-		</div>
-
-	)
-
-	drawAllBuses = () =>(
-		this.state.busPaths.map(this.drawBus)
-	)
-
+	getAllBusElements = () =>{
+		let busElements = []
+		let mapping = this.props.vehicleLocation
+		// console.log(mapping)
+		mapping.forEach(function(busData, key){
+			busData.key = key
+			busElements.push(busData)
+		})
+		return busElements
+	}
+	
 
 	render(){
     const drawMaps = this.state.drawMaps
-    // const busLocations = this.props.vehicleLocation.map((d,i) =>
-    // 		<circle
-    // 			key={"path" + d+ i}
-    // 			/>
-    // 	)
-    //<g className='Maps'> {this.state.mapPaths} </g>
-    // <g className='busLocations'> </g>
-    // console.log(this.state.mapPaths)
-		return (<svg height={this.props.height} width={this.props.width}>
+    const elements = this.getAllBusElements()
+    const viewboxSize = "0 0 "+this.props.width + " "+ this.props.height
+		return (<svg height={this.props.height} width={this.props.width} viewBox={viewboxSize}>
 							<g className='features'>
 								{this.state.mapPaths}
 							</g>
 							<g className='buses'>
-								{this.drawAllBuses()}
+								{elements.map(this.drawBus)}
 							</g>
-							
-							
-
 					 </svg>
 		)
 	}
